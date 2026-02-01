@@ -92,6 +92,68 @@ def plot_score_distribution_by_season(df):
     plt.savefig(FIG_DIR / "eda_score_distribution_season.png", dpi=300, bbox_inches="tight")
     plt.close()
 
+def plot_industry_score_trend(df, weeks):
+    """
+    Plots the trend of Total Scores for different industries across seasons.
+    Mimics the style of the user-provided reference (line chart with markers, cumulative effect).
+    """
+    df_plot = df.copy()
+    
+    # Calculate Total Score per contestant (Sum of all weekly averages * number of judges, rough approx or just sum of weekly avgs?)
+    # Reference image Y-axis goes to 1600.
+    # Scores are usually out of 30 or 40. A season has ~10-12 weeks.
+    # Max score per person ~ 12 * 40 = 480.
+    # So 1600 implies aggregation of multiple people (e.g. 3-4 finalists or total industry representation).
+    # We will sum 'Average Weekly Score' * 3 (approx number of judges? 3 or 4) across all weeks?
+    # Better: Sum of ALL judge raw scores available in the dataset for that row.
+    
+    # We need raw sums. compute_week_scores calculates 'week{w}_avg'.
+    # We can perform a fresh sum of all judge columns.
+    
+    judge_cols = [c for c in df_plot.columns if 'judge' in c and 'score' in c]
+    # Convert to numeric
+    for c in judge_cols:
+        df_plot[c] = pd.to_numeric(df_plot[c], errors='coerce')
+        
+    # Sum all judge scores for each contestant
+    df_plot['total_season_score'] = df_plot[judge_cols].sum(axis=1)
+    
+    # Group by Season and Industry
+    industry_trend = df_plot.groupby(['season', 'celebrity_industry'])['total_season_score'].sum().reset_index()
+    
+    # Filter industries that have at least some presence to avoid clutter?
+    # Reference has many lines. We'll include top 12 or so, or all if not too many.
+    top_industries = industry_trend.groupby('celebrity_industry')['total_season_score'].sum().sort_values(ascending=False).index[:15]
+    industry_trend = industry_trend[industry_trend['celebrity_industry'].isin(top_industries)]
+    
+    plt.figure(figsize=(14, 7))
+    
+    # Use a varied palette
+    unique_industries = industry_trend['celebrity_industry'].unique()
+    colors = sns.color_palette("tab20", n_colors=len(unique_industries))
+    
+    for i, ind in enumerate(unique_industries):
+        subset = industry_trend[industry_trend['celebrity_industry'] == ind]
+        plt.plot(subset['season'], subset['total_season_score'], 
+                 marker='o', markersize=4, label=ind, linewidth=1.5, color=colors[i])
+
+    plt.title("不同职业类别的得分变化趋势 (Total Score Trend by Industry)", fontsize=16)
+    plt.xlabel("Season", fontsize=12)
+    plt.ylabel("Total Accumulated Score (Industry-wise)", fontsize=12)
+    
+    # Grid
+    plt.grid(True, linestyle='--', alpha=0.5)
+    
+    # Legend - Put at bottom outside like reference
+    plt.legend(bbox_to_anchor=(0.5, -0.15), loc='upper center', ncol=4, frameon=False, fontsize=10)
+    
+    # Adjust layout
+    plt.subplots_adjust(bottom=0.25)
+    
+    save_fig(plt.gcf(), FIG_DIR / "eda_industry_score_trend.png")
+    print(f"Generated: {FIG_DIR / 'eda_industry_score_trend.png'}")
+
+
 def plot_score_progression(df, weeks):
     records = []
     for idx, row in df.iterrows():
@@ -389,7 +451,12 @@ def main():
     print("Generating feature importance plot...")
     plot_feature_importance_like_reference(df, weeks)
     
-    print("Done.")
+    # New industry trend plot
+    print("Generating industry score trend plot...")
+    plot_industry_score_trend(df, weeks)
+    
 
-if __name__ == "__main__":
+    print('Done.')
+
+if __name__ == '__main__':
     main()
