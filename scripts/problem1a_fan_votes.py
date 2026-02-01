@@ -1343,9 +1343,9 @@ def main():
                 ax.plot(sub_sorted["week"], sub_sorted["fan_vote_share"], 
                        marker="o", label=name, color=c, linewidth=2.5)
             
-            ax.set_title(f"第 {latest_season} 季决赛选手观众投票份额趋势", fontweight='bold')
-            ax.set_xlabel("周次")
-            ax.set_ylabel("观众投票份额")
+            ax.set_title(f"Fan Vote Share Trend for Season {latest_season} Finalists", fontweight='bold')
+            ax.set_xlabel("Week")
+            ax.set_ylabel("Fan Vote Share")
             ax.legend()
             save_fig(fig, PLOT_FILE)
 
@@ -1366,14 +1366,14 @@ def main():
         
         # Refined Colorbar
         cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-        cbar.set_label("投票区间宽度 (Interval Width)", fontsize=10)
+        cbar.set_label("Interval Width", fontsize=10)
         cbar.ax.tick_params(labelsize=9, width=0.5)
         cbar.outline.set_linewidth(0.5)
 
         # Titles and Labels (Bilingual for international standard feel)
-        ax.set_title("观众投票不确定性热力图\nFan Vote Uncertainty Heatmap", fontsize=12, pad=12)
-        ax.set_xlabel("周次 (Week)", fontsize=10)
-        ax.set_ylabel("赛季 (Season)", fontsize=10)
+        ax.set_title("Fan Vote Uncertainty Heatmap", fontsize=12, pad=12)
+        ax.set_xlabel("Week", fontsize=10)
+        ax.set_ylabel("Season", fontsize=10)
         
         # Proper ticks adjustment
         season_labels = heat_pivot.index.tolist()
@@ -1449,7 +1449,7 @@ def main():
                 percent_df["judge_std"],
                 percent_df["fan_share_width_mean"],
                 alpha=0.6,
-                label="百分比法",
+                label="Percent Method",
                 color=COLORS["blue"],
                 edgecolors='white'
             )
@@ -1458,13 +1458,13 @@ def main():
                 rank_df["judge_std"],
                 rank_df["fan_rank_std_mean"],
                 alpha=0.6,
-                label="排名法",
+                label="Rank Method",
                 color=COLORS["orange"],
                 edgecolors='white'
             )
-        ax.set_title("评委评分差异性与不确定性关系", fontweight='bold')
-        ax.set_xlabel("评委评分标准差")
-        ax.set_ylabel("不确定性指标")
+        ax.set_title("Relationship between Judge Score Variance and Uncertainty", fontweight='bold')
+        ax.set_xlabel("Standard Deviation of Judge Scores")
+        ax.set_ylabel("Uncertainty Metric")
         ax.legend()
         save_fig(fig, PLOT_JUDGE_UNCERTAINTY)
 
@@ -1507,9 +1507,9 @@ def main():
         if not pressure_vals.empty:
             fig, ax = plt.subplots(figsize=(6, 4))
             ax.hist(pressure_vals, bins=30, color=COLORS["red"], alpha=0.8, edgecolor='white')
-            ax.set_title("淘汰压力分布", fontweight='bold')
-            ax.set_xlabel("压力值")
-            ax.set_ylabel("频数")
+            ax.set_title("Distribution of Elimination Pressure", fontweight='bold')
+            ax.set_xlabel("Pressure Value")
+            ax.set_ylabel("Frequency")
             save_fig(fig, PLOT_PRESSURE)
 
     print(f"\n结果已保存至：{OUTPUT_VOTES}")

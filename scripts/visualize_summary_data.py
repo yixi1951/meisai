@@ -5,7 +5,7 @@ from pathlib import Path
 
 # Set style
 sns.set_theme(style="whitegrid")
-plt.rcParams["font.sans-serif"] = ["SimHei", "Arial Unicode MS"] # Support Chinese if needed
+# plt.rcParams["font.sans-serif"] = ["SimHei", "Arial Unicode MS"] # Support Chinese if needed
 plt.rcParams["axes.unicode_minus"] = False
 
 def main():

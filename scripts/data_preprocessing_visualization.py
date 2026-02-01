@@ -137,7 +137,7 @@ def plot_industry_score_trend(df, weeks):
         plt.plot(subset['season'], subset['total_season_score'], 
                  marker='o', markersize=4, label=ind, linewidth=1.5, color=colors[i])
 
-    plt.title("不同职业类别的得分变化趋势 (Total Score Trend by Industry)", fontsize=16)
+    plt.title("Total Score Trend by Industry", fontsize=16)
     plt.xlabel("Season", fontsize=12)
     plt.ylabel("Total Accumulated Score (Industry-wise)", fontsize=12)
     
@@ -228,7 +228,7 @@ def plot_judge_disagreement_scatter(df, weeks):
     if plot_data.empty: return
     plt.figure(figsize=(10, 6))
     sns.scatterplot(data=plot_data, x="Mean Score", y="Disagreement (Std)", hue="Season", alpha=0.3, palette="Spectral", legend=False, s=20)
-    plt.title("评委均分 vs 评分争议度", fontsize=14, pad=15)
+    plt.title("Mean Score vs Judge Disagreement", fontsize=14, pad=15)
     plt.xlabel("Average Score", fontsize=12)
     plt.ylabel("Standard Deviation", fontsize=12)
     plt.savefig(FIG_DIR / "eda_judge_disagreement.png", dpi=300, bbox_inches="tight")
@@ -249,7 +249,7 @@ def plot_overall_score_density(df):
     
     plt.figure(figsize=(10, 6))
     sns.kdeplot(data=melted, x="Average Score", hue="Era", fill=True, common_norm=False, alpha=0.4)
-    plt.title("评分密度分布：早期赛季 vs 晚期赛季", fontsize=14, pad=15)
+    plt.title("Score Density Distribution: Early vs. Late Seasons", fontsize=14, pad=15)
     plt.xlabel("Average Score", fontsize=12)
     plt.ylabel("Density", fontsize=12)
     

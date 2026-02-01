@@ -478,9 +478,9 @@ def main():
     # Plot alpha sensitivity
     plt.figure(figsize=(6, 4))
     plt.plot(sens_q4["alpha"], sens_q4["difference_rate_vs_base"], marker="o")
-    plt.title("公平合成规则对权重参数的敏感性")
-    plt.xlabel("alpha（裁判权重）")
-    plt.ylabel("与基准淘汰差异比例")
+    plt.title("Sensitivity of Fair Synthesis Rule to Alpha")
+    plt.xlabel("Alpha (Judge Weight)")
+    plt.ylabel("Difference Rate vs Baseline")
     plt.grid(True, linestyle="--", alpha=0.5)
     plt.tight_layout()
     plt.savefig(PLOT_Q4, dpi=300)

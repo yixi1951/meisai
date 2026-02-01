@@ -321,9 +321,9 @@ def main():
     # Visualization: difference ratio by season
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.bar(season_sum["season"].astype(str), season_sum["difference_ratio"], color=COLORS["teal"], alpha=0.9, edgecolor='white')
-    ax.set_title("各赛季两种规则淘汰差异比例", fontweight="bold")
-    ax.set_xlabel("赛季")
-    ax.set_ylabel("差异比例")
+    ax.set_title("Elimination Difference Ratio by Season", fontweight="bold")
+    ax.set_xlabel("Season")
+    ax.set_ylabel("Difference Ratio")
     plt.xticks(rotation=45)
     save_fig(fig, PLOT_FILE)
 
@@ -516,8 +516,8 @@ def main():
     ]
     colors = [COLORS["blue"], COLORS["teal"], COLORS["orange"], COLORS["red"]]
     ax.bar(labels, values, color=colors, alpha=0.9, edgecolor='white')
-    ax.set_title("两种规则对粉丝/评委选择的一致率", fontweight="bold")
-    ax.set_ylabel("一致率")
+    ax.set_title("Alignment with Fan/Judge Preferences", fontweight="bold")
+    ax.set_ylabel("Alignment Rate")
     ax.set_ylim(0, 1)
     save_fig(fig, PLOT_BIAS)
 
@@ -529,8 +529,8 @@ def main():
             overall_bias["percent_judge_overrides_fan_rate"],
         ]
         ax.bar(labels, values, color=[COLORS["purple"], COLORS["orange"]], alpha=0.9, edgecolor='white')
-        ax.set_title("评委选择对粉丝淘汰的覆盖率（冲突周次）", fontweight="bold")
-        ax.set_ylabel("覆盖率")
+        ax.set_title("Judge Override of Fan Elimination (Conflict Weeks)", fontweight="bold")
+        ax.set_ylabel("Override Rate")
         ax.set_ylim(0, 1)
         save_fig(fig, PLOT_CONFLICT)
 
@@ -541,8 +541,8 @@ def main():
             fig, ax = plt.subplots(figsize=(8, 5))
             plot_df.columns = ["Rank System", "Percent System"]
             plot_df.plot(kind="bar", ax=ax, color=[COLORS["blue"], COLORS["red"]], alpha=0.9)
-            ax.set_title("争议选手代理最终名次对比（排名法 vs 百分比法）", fontweight="bold")
-            ax.set_ylabel("代理名次（数值越小越好）")
+            ax.set_title("Proxy Rank Comparison for Controversial Contestants", fontweight="bold")
+            ax.set_ylabel("Proxy Rank (Lower is Better)")
             plt.xticks(rotation=0)
             save_fig(fig, PLOT_CONTROVERSY)
 

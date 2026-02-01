@@ -329,7 +329,7 @@ def main():
     plt.bar(x + width/2, met_df["fan_align_conflict"], width, label="Fan Align (Conflict Weeks)")
     plt.xticks(x, rules)
     plt.ylim(0, 1.1)
-    plt.title("FSH 模型与传统模型性能对比")
+    plt.title("Performance Comparison: FSH Model vs Traditional Models")
     plt.legend()
     plt.grid(axis='y', alpha=0.3)
     plt.savefig(PLOT_COMPARE_BAR, dpi=300)
@@ -342,7 +342,7 @@ def main():
         plt.colorbar(label="Season")
         plt.xlabel("Divergence (D)")
         plt.ylabel("Judge Weight (w)")
-        plt.title("自适应权重机制可视化: 分歧越大，评委越重要")
+        plt.title("Adaptive Weighting Mechanism: Judge Importance Increases with Divergence")
         plt.grid(True, alpha=0.3)
         # Plot theoretical curve
         d_range = np.linspace(0, dw_df["D"].max(), 100)
