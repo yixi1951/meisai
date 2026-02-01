@@ -35,8 +35,93 @@ except ImportError:
 # ============================
 set_style()
 
+def plot_judge_vs_fan_trajectory(fan_df, season=None):
+    """
+    Plots the trajectories of Judge Share vs Fan Vote Share for core contestants in a specific season.
+    Mimics the reference image style (Solid vs Dashed lines).
+    """
+    if season is None:
+        # Default to a season with good data, e.g., 27 if available, else max season
+        if 27 in fan_df["season"].unique():
+            season = 27
+        else:
+            season = fan_df["season"].max()
+
+    print(f"Plotting trajectories for Season {season}...")
+    
+    s_df = fan_df[fan_df["season"] == season].copy()
+    
+    if s_df.empty:
+        print(f"No data for season {season}")
+        return
+
+    # Calculate judge share within this season/week context
+    # s_df already has 'judge_total'. We need to sum it per week to get share.
+    # Note: fan_df contains ALL contestants for that week ideally.
+    
+    # Group by week to normalize
+    s_df["judge_share_calc"] = s_df.groupby("week")["judge_total"].transform(lambda x: x / x.sum())
+    
+    # Select Core Competitors (Finalists implies they are present in the max week)
+    max_week = s_df["week"].max()
+    finalists = s_df[s_df["week"] == max_week]["celebrity_name"].unique()
+    
+    # If specifically looking for Season 27 people from reference
+    target_names = ["Milo Manheim", "Alexis Ren", "Evanna Lynch", "Bobby Bones"]
+    
+    # Check if these targets exist in our data
+    existing_targets = [name for name in target_names if name in s_df["celebrity_name"].unique()]
+    
+    if len(existing_targets) >= 3:
+        contestants = existing_targets
+    else:
+        # Fallback to top 4 finalists
+        contestants = list(finalists)[:4]
+
+    fig, ax = plt.subplots(figsize=(12, 7))
+    
+    # Define colors for contestants
+    # Reference colors: Milo (Blue), Alexis (Green), Evanna (Purple), Bobby (Pink/Red)
+    color_map = {
+        "Milo Manheim": "#1f77b4",   # Blue
+        "Alexis Ren": "#2ca02c",     # Green
+        "Evanna Lynch": "#9467bd",   # Purple
+        "Bobby Bones": "#e377c2"     # Pink
+    }
+    # Fallback palette
+    fallback_colors = ["#1f77b4", "#2ca02c", "#9467bd", "#e377c2", "#ff7f0e"]
+    
+    markers = ['o', 's', '^', 'D']
+    
+    for i, name in enumerate(contestants):
+        c_data = s_df[s_df["celebrity_name"] == name].sort_values("week")
+        
+        c = color_map.get(name, fallback_colors[i % len(fallback_colors)])
+        m = markers[i % len(markers)]
+        
+        # Plot Judge Share (Solid)
+        ax.plot(c_data["week"], c_data["judge_share_calc"], 
+                color=c, linestyle='-', marker=m, linewidth=2, label=f"{name} - Judge Share")
+        
+        # Plot Fan Share (Dashed)
+        ax.plot(c_data["week"], c_data["fan_vote_share"], 
+                color=c, linestyle='--', marker=m, linewidth=2, label=f"{name} - Fan Share")
+
+    ax.set_title(f"Season {season}: Judge Share vs Fan Vote Share Trajectory (Core Contestants)", fontsize=14)
+    ax.set_xlabel("Week", fontsize=12)
+    ax.set_ylabel("Share (Proportion)", fontsize=12)
+    
+    # Grid
+    ax.grid(True, linestyle='--', alpha=0.5)
+    
+    # Legend - Positioned nicely? Top left in reference
+    ax.legend(loc='upper left', ncol=2, fontsize=9, framealpha=0.9)
+    
+    out_file = FIG_DIR / f"fan_vote_trajectory_s{season}.png"
+    save_fig(fig, out_file)
+    print(f"Generated: {out_file}")
+
 # ============================
-# Preference weights (reasonable smoothness & correlation)
 # ============================
 SMOOTHNESS_WEIGHT = 1.0
 CORRELATION_WEIGHT = 1.0
@@ -711,6 +796,93 @@ def run_estimation_for_weights(df: pd.DataFrame, weeks, smooth_w: float, corr_w:
 # Main process
 # ============================
 
+
+def plot_judge_vs_fan_trajectory(fan_df, season=None):
+    """
+    Plots the trajectories of Judge Share vs Fan Vote Share for core contestants in a specific season.
+    Mimics the reference image style (Solid vs Dashed lines).
+    """
+    if season is None:
+        # Default to a season with good data, e.g., 27 if available, else max season
+        if 27 in fan_df["season"].unique():
+            season = 27
+        else:
+            season = int(fan_df["season"].max())
+
+    print(f"Plotting trajectories for Season {season}...")
+    
+    s_df = fan_df[fan_df["season"] == season].copy()
+    
+    if s_df.empty:
+        print(f"No data for season {season}")
+        return
+
+    # Calculate judge share within this season/week context
+    # s_df already has 'judge_total'. We need to sum it per week to get share.
+    # Note: fan_df contains ALL contestants for that week ideally.
+    
+    # Group by week to normalize
+    s_df["judge_share_calc"] = s_df.groupby("week")["judge_total"].transform(lambda x: x / x.sum())
+    
+    # Select Core Competitors (Finalists implies they are present in the max week)
+    max_week = s_df["week"].max()
+    finalists = s_df[s_df["week"] == max_week]["celebrity_name"].unique()
+    
+    # If specifically looking for Season 27 people from reference
+    target_names = ["Milo Manheim", "Alexis Ren", "Evanna Lynch", "Bobby Bones"]
+    
+    # Check if these targets exist in our data
+    existing_targets = [name for name in target_names if name in s_df["celebrity_name"].unique()]
+    
+    if len(existing_targets) >= 3:
+        contestants = existing_targets
+    else:
+        # Fallback to top 4 finalists
+        contestants = list(finalists)[:4]
+
+    fig, ax = plt.subplots(figsize=(12, 7))
+    
+    # Define colors for contestants
+    # Reference colors: Milo (Blue), Alexis (Green), Evanna (Purple), Bobby (Pink/Red)
+    color_map = {
+        "Milo Manheim": "#1f77b4",   # Blue
+        "Alexis Ren": "#2ca02c",     # Green
+        "Evanna Lynch": "#9467bd",   # Purple
+        "Bobby Bones": "#e377c2"     # Pink
+    }
+    # Fallback palette
+    fallback_colors = ["#1f77b4", "#2ca02c", "#9467bd", "#e377c2", "#ff7f0e"]
+    
+    markers = ['o', 's', '^', 'D']
+    
+    for i, name in enumerate(contestants):
+        c_data = s_df[s_df["celebrity_name"] == name].sort_values("week")
+        
+        c = color_map.get(name, fallback_colors[i % len(fallback_colors)])
+        m = markers[i % len(markers)]
+        
+        # Plot Judge Share (Solid)
+        ax.plot(c_data["week"], c_data["judge_share_calc"], 
+                color=c, linestyle='-', marker=m, linewidth=2, label=f"{name} - Judge Share")
+        
+        # Plot Fan Share (Dashed)
+        ax.plot(c_data["week"], c_data["fan_vote_share"], 
+                color=c, linestyle='--', marker=m, linewidth=2, label=f"{name} - Fan Share")
+
+    ax.set_title(f"Season {season}: Judge Share vs Fan Vote Share Trajectory (Core Contestants)", fontsize=14)
+    ax.set_xlabel("Week", fontsize=12)
+    ax.set_ylabel("Share (Proportion)", fontsize=12)
+    
+    # Grid
+    ax.grid(True, linestyle='--', alpha=0.5)
+    
+    # Legend - Positioned nicely? Top left in reference
+    ax.legend(loc='upper left', ncol=2, fontsize=9, framealpha=0.9)
+    
+    out_file = FIG_DIR / f"fan_vote_trajectory_s{season}.png"
+    save_fig(fig, out_file)
+    print(f"Generated: {out_file}")
+
 def main():
     # Load data
     df = pd.read_csv(DATA_FILE)
@@ -1244,6 +1416,8 @@ def main():
     print(f"可行解空间图已保存至：{PLOT_FEASIBLE_SPACE}")
     print(f"淘汰压力分布图已保存至：{PLOT_PRESSURE}")
 
+    # Plot Trajectory (Season 27 specific)
+    plot_judge_vs_fan_trajectory(results_df, season=27)
 
 if __name__ == "__main__":
     main()
