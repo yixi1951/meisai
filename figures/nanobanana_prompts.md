@@ -65,3 +65,32 @@ Structure it into 6 phases with a Feedback Loop:
 Style: Engineering schematic style.
 Direction: LR.
 ```
+
+---
+
+## Prompt for Full Technical Roadmap (Project Framework)
+```text
+Create a stunning "Scientific Infographic" illustrating a 4-Stage Research Framework.
+Style: Modern, Clean, Minimalist (Swiss Design influence). Flat Vector illustration style.
+Layout: 4 Vertical Columns, perfectly aligned, separated by thin vertical dividers.
+1. Column 1 (Data Inference):
+   - Visual Metaphor: Raw scattered data points condensing into a smooth, clean curve.
+   - Keywords: "Bayesian Model", "Latent Votes".
+   - Color Theme: Muted Teal / Cyan.
+2. Column 2 (Mechanism Audit):
+   - Visual Metaphor: A split path or A/B comparison diagram (Rank vs Percent).
+   - Keywords: "Rule Bias", "Counterfactuals".
+   - Color Theme: Muted Indigo / Blue.
+3. Column 3 (Causal Drivers):
+   - Visual Metaphor: Interconnected nodes (Network) highlighting key factors.
+   - Keywords: "Regression Analysis", "Dancer Effect".
+   - Color Theme: Muted Emerald / Green.
+4. Column 4 (System Redesign):
+   - Visual Metaphor: A circular iteration loop or a geometric structure representing stability.
+   - Keywords: "Optimization", "New Standards".
+   - Color Theme: Muted Ochre / Gold.
+Graphic Elements: Use thin dividing lines, ample whitespace, and simple geometric icons. No 3D effects. No drop shadows.
+Typography: Clean Sans-Serif (e.g., Helvetica Now), crisp and legible.
+Background: Pure white or very light grey (#F5F5F7).
+Result should look like a diagram from a high-end design portfolio or a Nature Reviews Method paper.
+```

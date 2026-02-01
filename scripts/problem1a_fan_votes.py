@@ -121,6 +121,78 @@ def plot_judge_vs_fan_trajectory(fan_df, season=None):
     save_fig(fig, out_file)
     print(f"Generated: {out_file}")
 
+def plot_fan_share_heatmap(df, season=27):
+    """
+    Plots the inferred fan vote share heatmap for a specific season.
+    Mimics the style of the reference image: triangular structure, sorted by longevity.
+    """
+    s_df = df[df["season"] == season].copy()
+    
+    if s_df.empty:
+        print(f"No data found for Season {season} for heatmap.")
+        return
+
+    # Pivot: Index=Name, Columns=Week, Values=Share
+    pivot = s_df.pivot(index="celebrity_name", columns="week", values="fan_vote_share")
+    
+    # Sort Logic: Descending by count of weeks, then mean share
+    weeks_count = pivot.count(axis=1)
+    avg_share = pivot.mean(axis=1)
+    sort_df = pd.DataFrame({"count": weeks_count, "mean": avg_share})
+    sort_df = sort_df.sort_values(by=["count", "mean"], ascending=[False, False])
+    
+    # Reindex the pivot
+    pivot = pivot.reindex(sort_df.index)
+    
+    # Create Figure
+    fig, ax = plt.subplots(figsize=(12, 8), dpi=300)
+    
+    # Colormap: 'viridis' (Purple to Yellow)
+    cmap = plt.cm.viridis
+    cmap.set_bad(color='white')  # Set NaNs to white
+    
+    # Create a masked array where NaN is masked
+    data = pivot.values
+    masked_data = np.ma.array(data, mask=np.isnan(data))
+    
+    im = ax.imshow(masked_data, aspect="auto", cmap=cmap, interpolation='nearest')
+    
+    # Colorbar
+    cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    cbar.set_label("粉丝投票比例 (Fan Vote Share)", fontsize=10)
+    cbar.ax.tick_params(labelsize=9)
+    cbar.outline.set_linewidth(0.5)
+    
+    # Ticks & Labels
+    ax.set_title(f"第 {season} 季：反推粉丝投票比例热力图\nSeason {season}: Inferred Fan Vote Share Heatmap", fontsize=14, pad=15)
+    
+    # Y-axis: Names
+    ax.set_yticks(np.arange(len(pivot.index)))
+    ax.set_yticklabels(pivot.index, fontsize=10)
+    
+    # X-axis: Weeks
+    weeks = pivot.columns.tolist()
+    ax.set_xticks(np.arange(len(weeks)))
+    ax.set_xticklabels(weeks, fontsize=10)
+    ax.set_xlabel("周次 (Week)", fontsize=12)
+    ax.set_ylabel("选手 (Contestant)", fontsize=12)
+
+    # Grid (Minor ticks)
+    ax.set_xticks(np.arange(len(weeks) + 1) - 0.5, minor=True)
+    ax.set_yticks(np.arange(len(pivot.index) + 1) - 0.5, minor=True)
+    ax.grid(which="minor", color="white", linestyle='-', linewidth=0.5)
+    ax.tick_params(which="minor", bottom=False, left=False)
+    
+    # Spines
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_color('#333333')
+    ax.spines['left'].set_color('#333333')
+
+    out_file = FIG_DIR / f"fan_vote_share_heatmap_s{season}.png"
+    save_fig(fig, out_file)
+    print(f"Generated: {out_file}")
+
 # ============================
 # ============================
 SMOOTHNESS_WEIGHT = 1.0
@@ -1281,13 +1353,51 @@ def main():
     if not uncertainty_percent_df.empty:
         heat = uncertainty_percent_df.groupby(["season", "week"])["fan_share_width"].mean().reset_index()
         heat_pivot = heat.pivot(index="season", columns="week", values="fan_share_width").fillna(0.0)
-        fig, ax = plt.subplots(figsize=(12, 6))
-        im = ax.imshow(heat_pivot.values, aspect="auto", cmap="YlGnBu")
-        cbar = plt.colorbar(im, ax=ax)
-        cbar.set_label("投票区间宽度")
-        ax.set_title("观众投票不确定性热力图（按赛季-周次）", fontweight='bold')
-        ax.set_xlabel("周次")
-        ax.set_ylabel("赛季")
+        
+        # Optimized Academic Style
+        # Use a restrained size and higher DPI
+        fig, ax = plt.subplots(figsize=(10, 6), dpi=300)
+        
+        # Low saturation colormap (e.g., bone_r, or a custom linear sequential)
+        # 'YlGnBu' provides a clean white-to-blue gradient suitable for publications
+        cmap = plt.cm.YlGnBu
+        
+        im = ax.imshow(heat_pivot.values, aspect="auto", cmap=cmap, interpolation='nearest')
+        
+        # Refined Colorbar
+        cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+        cbar.set_label("投票区间宽度 (Interval Width)", fontsize=10)
+        cbar.ax.tick_params(labelsize=9, width=0.5)
+        cbar.outline.set_linewidth(0.5)
+
+        # Titles and Labels (Bilingual for international standard feel)
+        ax.set_title("观众投票不确定性热力图\nFan Vote Uncertainty Heatmap", fontsize=12, pad=12)
+        ax.set_xlabel("周次 (Week)", fontsize=10)
+        ax.set_ylabel("赛季 (Season)", fontsize=10)
+        
+        # Proper ticks adjustment
+        season_labels = heat_pivot.index.tolist()
+        week_labels = heat_pivot.columns.tolist()
+        
+        # Y-axis seasons (sparse ticks to avoid crowding)
+        n_seasons = len(season_labels)
+        step_y = max(1, int(n_seasons / 10)) 
+        y_locs = np.arange(0, n_seasons, step_y)
+        ax.set_yticks(y_locs)
+        ax.set_yticklabels([season_labels[i] for i in y_locs], fontsize=9)
+        
+        # X-axis weeks
+        n_weeks = len(week_labels)
+        ax.set_xticks(np.arange(n_weeks))
+        ax.set_xticklabels(week_labels, fontsize=9)
+        
+        # Minimalist spines
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['bottom'].set_linewidth(0.5)
+        ax.spines['left'].set_linewidth(0.5)
+        ax.tick_params(axis='both', width=0.5, length=3)
+
         save_fig(fig, HEATMAP_FILE)
 
     # Judge score variability vs uncertainty (relation analysis)
@@ -1418,6 +1528,9 @@ def main():
 
     # Plot Trajectory (Season 27 specific)
     plot_judge_vs_fan_trajectory(results_df, season=27)
+    
+    # Plot Fan Vote Share Heatmap (Season 27 specific)
+    plot_fan_share_heatmap(results_df, season=27)
 
 if __name__ == "__main__":
     main()
