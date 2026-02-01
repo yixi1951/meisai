@@ -10,6 +10,26 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 import re
+try:
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.preprocessing import LabelEncoder
+    SKLEARN_AVAILABLE = True
+except ImportError:
+    SKLEARN_AVAILABLE = False
+
+try:
+    from style_config import set_style, COLORS, save_fig
+except ImportError:
+    # Fallback
+    COLORS = {"blue": "#4c72b0", "grid": "#CCCCCC"}
+    def set_style():
+        plt.style.use("seaborn-v0_8-whitegrid")
+        plt.rcParams["font.family"] = ["sans-serif"]
+        plt.rcParams["font.sans-serif"] = ["SimHei", "Microsoft YaHei", "Arial"]
+        plt.rcParams["axes.unicode_minus"] = False
+    def save_fig(fig, path):
+        fig.savefig(path, dpi=300, bbox_inches="tight")
+        plt.close(fig)
 
 # ============================
 # 配置与路径
@@ -19,13 +39,8 @@ DATA_DIR = ROOT_DIR / "data"
 FIG_DIR = ROOT_DIR / "figures"
 DATA_FILE = DATA_DIR / "2026_MCM_Problem_C_Data.csv"
 
-# 绘图风格设置
-plt.style.use("seaborn-v0_8-whitegrid")
-plt.rcParams["font.family"] = ["sans-serif"]
-plt.rcParams["font.sans-serif"] = ["SimHei", "Microsoft YaHei", "Arial Unicode MS", "Arial"]
-plt.rcParams["axes.unicode_minus"] = False
-# 配色方案
-sns.set_palette("husl")
+# Apply style
+set_style()
 
 # ============================
 # 辅助函数
@@ -240,6 +255,113 @@ def plot_score_volatility(df, weeks):
     print(f"Generated: {FIG_DIR / 'eda_score_volatility.png'}")
     plt.close()
 
+def plot_feature_importance_like_reference(df, weeks):
+    """
+    Generates a horizontal bar chart of feature importance for predicting Placement.
+    Mimics the style of the user-provided reference image.
+    Features: Age, Season, Avg Score, Score Volatility, Start Score, etc.
+    """
+    if not SKLEARN_AVAILABLE:
+        print("Skipping Feature Importance plot (scikit-learn not found).")
+        return
+
+    # 1. Feature Engineering
+    # We want to predict 'placement' (numerical). 
+    # If placement is non-numeric (e.g., 'Winner'), it usually is parsed to 1 in previous steps.
+    
+    # Ensure placement is numeric
+    if "placement" not in df.columns:
+        return
+        
+    df_work = df.copy()
+    df_work["placement_num"] = pd.to_numeric(df_work["placement"], errors='coerce')
+    
+    # Calculate aggregated features
+    avg_cols = [f"week{w}_avg" for w in weeks if f"week{w}_avg" in df_work.columns]
+    
+    if not avg_cols:
+        return
+
+    # Row-wise statistics
+    df_work["Avg_Score"] = df_work[avg_cols].mean(axis=1)
+    df_work["Max_Score"] = df_work[avg_cols].max(axis=1)
+    df_work["Min_Score"] = df_work[avg_cols].min(axis=1)
+    df_work["Score_Std"] = df_work[avg_cols].std(axis=1).fillna(0)
+    
+    # Early performance (Week 1 or first available)
+    if f"week{weeks[0]}_avg" in df_work.columns:
+        df_work["Start_Week_Score"] = df_work[f"week{weeks[0]}_avg"]
+    else:
+        df_work["Start_Week_Score"] = df_work["Avg_Score"] # Fallback
+
+    # Feature selection
+    feature_cols = [
+        "season", 
+        "celebrity_age_during_season", 
+        "Avg_Score", 
+        "Max_Score", 
+        "Min_Score", 
+        "Score_Std",
+        "Start_Week_Score"
+    ]
+    
+    # Clean data for modeling
+    model_df = df_work[feature_cols + ["placement_num"]].dropna()
+    
+    if model_df.empty:
+        return
+
+    X = model_df[feature_cols]
+    y = model_df["placement_num"]
+
+    # 2. Train Model
+    rf = RandomForestRegressor(n_estimators=100, random_state=42)
+    rf.fit(X, y)
+    
+    importances = rf.feature_importances_
+    
+    # 3. Visualization
+    # Scale to be "integer-like" scores if preferred, or just percentage.
+    # The reference image has values like 573, 522. Assuming sum=1000 scale.
+    scaled_importances = importances * 1000
+    
+    # Create DataFrame for plotting
+    feat_imp = pd.DataFrame({
+        "Feature": feature_cols,
+        "Importance": scaled_importances
+    }).sort_values("Importance", ascending=True) # Ascending for barh (bottom to top)
+
+    # Plot
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Horizontal bars
+    # Use thin bars as in reference image
+    y_pos = np.arange(len(feat_imp))
+    ax.barh(y_pos, feat_imp["Importance"], height=0.3, color=COLORS.get("blue", "#4c72b0"))
+    
+    # Labels
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(feat_imp["Feature"])
+    ax.set_xlabel("Feature importance")
+    ax.set_ylabel("Features")
+    ax.set_title("Feature importance")
+    
+    # Comparison style: Grid
+    ax.grid(True, axis='x', linestyle='-', alpha=0.9)
+    ax.grid(True, axis='y', linestyle='-', alpha=0.9)
+    # The reference has full grid
+    
+    # Add values at the end of bars
+    for i, v in enumerate(feat_imp["Importance"]):
+        ax.text(v + 10, i, f"{int(v)}", va='center', fontweight='normal', fontsize=10)
+    
+    # Adjust x limit to fit labels
+    ax.set_xlim(0, max(scaled_importances) * 1.15)
+    
+    save_fig(fig, FIG_DIR / "data_preprocessing_feature_importance.png")
+    print(f"Generated: {FIG_DIR / 'data_preprocessing_feature_importance.png'}")
+
+
 def main():
     if not DATA_FILE.exists(): return
     print("Loading...")
@@ -250,14 +372,22 @@ def main():
     df["elimination_week_regex"] = df.apply(extract_elimination_week, axis=1)
     df["last_active_week"] = df.apply(lambda r: last_active_week(r, weeks), axis=1) # Simplified for viz
 
-    print("Generating extra plots...")
+    print("Generating all plots...")
     plot_overall_score_density(df)
     plot_survival_curve(df, weeks)
     plot_score_volatility(df, weeks)
     
-    # 也可以重新生成前面的，但为了速度这次只跑新的，或者全部跑
-    # plot_score_vs_placement_scatter(df)
-    # plot_judge_disagreement_scatter(df, weeks)
+    # Run other plots
+    plot_score_vs_placement_scatter(df)
+    plot_judge_disagreement_scatter(df, weeks)
+    plot_score_distribution_by_season(df)
+    plot_score_progression(df, weeks)
+    plot_active_heatmap(df, weeks)
+    plot_elimination_distribution(df)
+
+    # New feature importance plot
+    print("Generating feature importance plot...")
+    plot_feature_importance_like_reference(df, weeks)
     
     print("Done.")
 
