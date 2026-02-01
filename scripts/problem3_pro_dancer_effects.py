@@ -17,10 +17,21 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+try:
+    import style_config
+    style_config.set_style()
+    COLORS = style_config.COLORS
+except ImportError:
+    # Fallback if style_config is not found or in a different dir
+    COLORS = {
+        "blue": "#5DADE2", "red": "#EC7063", "teal": "#48C9B0", 
+        "purple": "#AF7AC5", "orange": "#F5B041", "grey": "#95A5A6"
+    }
+
 # ============================
 # Global plotting configuration
 # ============================
-plt.rcParams["font.sans-serif"] = ["SimHei", "Microsoft YaHei", "Arial Unicode MS"]
+# plt.rcParams["font.sans-serif"] = ["SimHei", "Microsoft YaHei", "Arial Unicode MS"] # Handled by style_config
 plt.rcParams["axes.unicode_minus"] = False
 
 # ============================
@@ -191,6 +202,62 @@ def standardize_matrix(X: pd.DataFrame) -> pd.DataFrame:
     return X_std
 
 
+
+def plot_coefficients_like_reference(df_top, val_col, label_col, title, filename, color):
+    """
+    Generates a horizontal bar chart similar to the 'Feature Importance' reference style.
+    """
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Sort for plotting (bottom to top)
+    # create a copy to avoid SettingWithCopyWarning
+    plot_df = df_top.copy()
+    plot_df = plot_df.sort_values(by=val_col, ascending=True)
+    
+    y_pos = np.arange(len(plot_df))
+    
+    # Horizontal bars
+    rects = ax.barh(y_pos, plot_df[val_col], height=0.5, color=color)
+    
+    # Labels
+    ax.set_yticks(y_pos)
+    # Clean up labels (remove prefix)
+    clean_labels = plot_df[label_col].astype(str).str.replace("celebrity_", "", regex=False)
+    ax.set_yticklabels(clean_labels)
+    
+    ax.set_xlabel("Standardized Coefficient Effect")
+    ax.set_title(title)
+    
+    # Grid
+    ax.grid(True, axis='x', linestyle='-', alpha=0.9, color='#EAEDED')
+    ax.grid(True, axis='y', linestyle='-', alpha=0.9, color='#EAEDED')
+    
+    # Add values at the end of bars
+    # Adjust text position based on value sign
+    max_val = plot_df[val_col].abs().max()
+    offset = max_val * 0.02
+    
+    for i, v in enumerate(plot_df[val_col]):
+        label_text = f"{v:.3f}"
+        if v >= 0:
+            ax.text(v + offset, i, label_text, va='center', fontweight='normal', fontsize=10)
+        else:
+            ax.text(v - offset, i, label_text, va='center', ha='right', fontweight='normal', fontsize=10)
+            
+    # Adjust x limit
+    limit = max_val * 1.2
+    ax.set_xlim(-limit if plot_df[val_col].min() < 0 else 0, limit)
+    
+    # Add detailed styling line on y-axis
+    ax.spines['left'].set_color('#BDC3C7')
+    ax.spines['bottom'].set_color('#BDC3C7')
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    
+    plt.tight_layout()
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    plt.close()
+
 # ============================
 # Main process
 # ============================
@@ -330,32 +397,30 @@ def main():
         plt.close()
 
     # Top features for audience (fan)
-    top_fan = std_non_intercept.reindex(std_non_intercept["coef_std_fan"].abs().sort_values(ascending=False).index).head(12)
+    top_fan = std_non_intercept.reindex(std_non_intercept["coef_std_fan"].abs().sort_values(ascending=False).index).head(10)
     if not top_fan.empty:
-        plt.figure(figsize=(8, 5))
-        plt.barh(top_fan["feature"].str.replace("celebrity_", "", regex=False), top_fan["coef_std_fan"], color="#4C78A8")
-        plt.axvline(0, color="#999", linewidth=1)
-        plt.xlabel("Coefficient (standardized)")
-        plt.title("Top feature effects on Audience (logit vote share)")
-        plt.gca().invert_yaxis()
-        plt.tight_layout()
-        plt.savefig(OUTPUT_FIG_TOP_FAN, dpi=300)
-        plt.close()
+        plot_coefficients_like_reference(
+            top_fan, 
+            "coef_std_fan", 
+            "feature", 
+            "Top Fan Vote Drivers (Standardized)", 
+            OUTPUT_FIG_TOP_FAN, 
+            COLORS["blue"]
+        )
 
     # Top features for judges
-    top_judge = std_non_intercept.reindex(std_non_intercept["coef_std_judge"].abs().sort_values(ascending=False).index).head(12)
+    top_judge = std_non_intercept.reindex(std_non_intercept["coef_std_judge"].abs().sort_values(ascending=False).index).head(10)
     if not top_judge.empty:
-        plt.figure(figsize=(8, 5))
-        plt.barh(top_judge["feature"].str.replace("celebrity_", "", regex=False), top_judge["coef_std_judge"], color="#F58518")
-        plt.axvline(0, color="#999", linewidth=1)
-        plt.xlabel("Coefficient (standardized)")
-        plt.title("Top feature effects on Judges (logit score share)")
-        plt.gca().invert_yaxis()
-        plt.tight_layout()
-        plt.savefig(OUTPUT_FIG_TOP_JUDGE, dpi=300)
-        plt.close()
+        plot_coefficients_like_reference(
+            top_judge, 
+            "coef_std_judge", 
+            "feature", 
+            "Top Judge Score Drivers (Standardized)", 
+            OUTPUT_FIG_TOP_JUDGE, 
+            COLORS["orange"]
+        )
 
-    # Marginal effects for categorical factors (relative to baseline)
+    # Marginals
     marginal_rows = []
     for prefix in ["ballroom_partner_", "celebrity_industry_", "celebrity_homestate_", "celebrity_homecountry/region_"]:
         subset = coef_merge[coef_merge["feature"].str.startswith(prefix)].copy()
