@@ -16,11 +16,21 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+try:
+    from style_config import set_style, COLORS, save_fig
+except ImportError:
+    COLORS = {"blue": "C0", "red": "C3", "teal": "C2", "orange": "C1", "purple": "C4", "grid": "#CCCCCC"}
+    def set_style():
+        plt.rcParams["font.sans-serif"] = ["SimHei", "Microsoft YaHei", "Arial Unicode MS"]
+        plt.rcParams["axes.unicode_minus"] = False
+    def save_fig(fig, path):
+        fig.savefig(path, dpi=300, bbox_inches="tight")
+        plt.close(fig)
+
 # ============================
 # Global plotting configuration
 # ============================
-plt.rcParams["font.sans-serif"] = ["SimHei", "Microsoft YaHei", "Arial Unicode MS"]
-plt.rcParams["axes.unicode_minus"] = False
+set_style()
 
 # ============================
 # File paths
@@ -309,16 +319,13 @@ def main():
     print(season_sum.head(20))
 
     # Visualization: difference ratio by season
-    plt.figure(figsize=(10, 6))
-    plt.bar(season_sum["season"].astype(str), season_sum["difference_ratio"], color="#4C78A8")
-    plt.title("各赛季两种规则淘汰差异比例")
-    plt.xlabel("赛季")
-    plt.ylabel("差异比例")
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.bar(season_sum["season"].astype(str), season_sum["difference_ratio"], color=COLORS["teal"], alpha=0.9, edgecolor='white')
+    ax.set_title("各赛季两种规则淘汰差异比例", fontweight="bold")
+    ax.set_xlabel("赛季")
+    ax.set_ylabel("差异比例")
     plt.xticks(rotation=45)
-    plt.grid(axis="y", linestyle="--", alpha=0.5)
-    plt.tight_layout()
-    plt.savefig(PLOT_FILE, dpi=300)
-    plt.show()
+    save_fig(fig, PLOT_FILE)
 
     print(f"\n周次对比结果已保存至：{OUTPUT_WEEK_DIFF}")
     print(f"赛季汇总结果已保存至：{OUTPUT_SEASON_SUM}")
@@ -499,50 +506,45 @@ def main():
     # ============================
     # Visualization
     # ============================
-    plt.figure(figsize=(8, 5))
-    labels = ["rank_fan", "percent_fan", "rank_judge", "percent_judge"]
+    fig, ax = plt.subplots(figsize=(8, 5))
+    labels = ["Rank (Fan)", "Percent (Fan)", "Rank (Judge)", "Percent (Judge)"]
     values = [
         overall_bias["rank_fan_align_rate"],
         overall_bias["percent_fan_align_rate"],
         overall_bias["rank_judge_align_rate"],
         overall_bias["percent_judge_align_rate"],
     ]
-    plt.bar(labels, values, color=["#4C78A8", "#72B7B2", "#F58518", "#E45756"])
-    plt.title("两种规则对粉丝/评委选择的一致率")
-    plt.ylabel("一致率")
-    plt.ylim(0, 1)
-    plt.grid(axis="y", linestyle="--", alpha=0.4)
-    plt.tight_layout()
-    plt.savefig(PLOT_BIAS, dpi=300)
-    plt.show()
+    colors = [COLORS["blue"], COLORS["teal"], COLORS["orange"], COLORS["red"]]
+    ax.bar(labels, values, color=colors, alpha=0.9, edgecolor='white')
+    ax.set_title("两种规则对粉丝/评委选择的一致率", fontweight="bold")
+    ax.set_ylabel("一致率")
+    ax.set_ylim(0, 1)
+    save_fig(fig, PLOT_BIAS)
 
     if not conflict_weeks.empty:
-        plt.figure(figsize=(6, 4))
-        labels = ["rank_override", "percent_override"]
+        fig, ax = plt.subplots(figsize=(6, 4))
+        labels = ["Rank Override", "Percent Override"]
         values = [
             overall_bias["rank_judge_overrides_fan_rate"],
             overall_bias["percent_judge_overrides_fan_rate"],
         ]
-        plt.bar(labels, values, color=["#A05195", "#FFA600"])
-        plt.title("评委选择对粉丝淘汰的覆盖率（冲突周次）")
-        plt.ylabel("覆盖率")
-        plt.ylim(0, 1)
-        plt.grid(axis="y", linestyle="--", alpha=0.4)
-        plt.tight_layout()
-        plt.savefig(PLOT_CONFLICT, dpi=300)
-        plt.show()
+        ax.bar(labels, values, color=[COLORS["purple"], COLORS["orange"]], alpha=0.9, edgecolor='white')
+        ax.set_title("评委选择对粉丝淘汰的覆盖率（冲突周次）", fontweight="bold")
+        ax.set_ylabel("覆盖率")
+        ax.set_ylim(0, 1)
+        save_fig(fig, PLOT_CONFLICT)
 
     if not analysis_df.empty:
         plot_df = analysis_df.dropna(subset=["rank_proxy_rank", "percent_proxy_rank"])\
             .set_index("celebrity_name")[["rank_proxy_rank", "percent_proxy_rank"]]
         if not plot_df.empty:
-            plot_df.plot(kind="bar", figsize=(8, 5))
-            plt.title("争议选手代理最终名次对比（排名法 vs 百分比法）")
-            plt.ylabel("代理名次（数值越小越好）")
-            plt.grid(axis="y", linestyle="--", alpha=0.4)
-            plt.tight_layout()
-            plt.savefig(PLOT_CONTROVERSY, dpi=300)
-            plt.show()
+            fig, ax = plt.subplots(figsize=(8, 5))
+            plot_df.columns = ["Rank System", "Percent System"]
+            plot_df.plot(kind="bar", ax=ax, color=[COLORS["blue"], COLORS["red"]], alpha=0.9)
+            ax.set_title("争议选手代理最终名次对比（排名法 vs 百分比法）", fontweight="bold")
+            ax.set_ylabel("代理名次（数值越小越好）")
+            plt.xticks(rotation=0)
+            save_fig(fig, PLOT_CONTROVERSY)
 
     # ============================
     # Recommendation (Q2c)

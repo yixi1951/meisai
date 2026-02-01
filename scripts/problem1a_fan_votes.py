@@ -18,11 +18,22 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+try:
+    from style_config import set_style, COLORS, save_fig
+except ImportError:
+    # Fallback if style_config not found
+    COLORS = {"blue": "C0", "red": "C3", "orange": "C1", "grid": "#CCCCCC"}
+    def set_style():
+        plt.rcParams["font.sans-serif"] = ["SimHei", "Microsoft YaHei", "Arial Unicode MS"]
+        plt.rcParams["axes.unicode_minus"] = False
+    def save_fig(fig, path):
+        fig.savefig(path, dpi=300, bbox_inches="tight")
+        plt.close(fig)
+
 # ============================
 # Global plotting configuration
 # ============================
-plt.rcParams["font.sans-serif"] = ["SimHei", "Microsoft YaHei", "Arial Unicode MS"]
-plt.rcParams["axes.unicode_minus"] = False
+set_style()
 
 # ============================
 # Preference weights (reasonable smoothness & correlation)
@@ -1078,36 +1089,34 @@ def main():
     if finalists and not results_df.empty:
         plot_df = results_df[(results_df["season"] == latest_season) & (results_df["celebrity_name"].isin(finalists))]
         if not plot_df.empty:
-            plt.figure(figsize=(10, 6))
-            for name, sub in plot_df.groupby("celebrity_name"):
+            fig, ax = plt.subplots(figsize=(10, 6))
+            unique_names = plot_df["celebrity_name"].unique()
+            color_iter = [COLORS["blue"], COLORS["red"], COLORS["teal"], COLORS["purple"], COLORS["orange"]]
+            
+            for i, (name, sub) in enumerate(plot_df.groupby("celebrity_name")):
                 sub_sorted = sub.sort_values("week")
-                plt.plot(sub_sorted["week"], sub_sorted["fan_vote_share"], marker="o", label=name)
-            plt.title(f"第 {latest_season} 季决赛选手观众投票份额趋势")
-            plt.xlabel("周次")
-            plt.ylabel("观众投票份额")
-            plt.legend()
-            plt.grid(True, linestyle="--", alpha=0.5)
-            plt.tight_layout()
-            plt.savefig(PLOT_FILE, dpi=300)
-            if SHOW_PLOTS:
-                plt.show()
-            plt.close()
+                c = color_iter[i % len(color_iter)]
+                ax.plot(sub_sorted["week"], sub_sorted["fan_vote_share"], 
+                       marker="o", label=name, color=c, linewidth=2.5)
+            
+            ax.set_title(f"第 {latest_season} 季决赛选手观众投票份额趋势", fontweight='bold')
+            ax.set_xlabel("周次")
+            ax.set_ylabel("观众投票份额")
+            ax.legend()
+            save_fig(fig, PLOT_FILE)
 
     # Heatmap of uncertainty (fan share width) by season-week
     if not uncertainty_percent_df.empty:
         heat = uncertainty_percent_df.groupby(["season", "week"])["fan_share_width"].mean().reset_index()
         heat_pivot = heat.pivot(index="season", columns="week", values="fan_share_width").fillna(0.0)
-        plt.figure(figsize=(12, 6))
-        plt.imshow(heat_pivot.values, aspect="auto", cmap="YlOrRd")
-        plt.colorbar(label="投票区间宽度")
-        plt.title("观众投票不确定性热力图（按赛季-周次）")
-        plt.xlabel("周次")
-        plt.ylabel("赛季")
-        plt.tight_layout()
-        plt.savefig(HEATMAP_FILE, dpi=300)
-        if SHOW_PLOTS:
-            plt.show()
-        plt.close()
+        fig, ax = plt.subplots(figsize=(12, 6))
+        im = ax.imshow(heat_pivot.values, aspect="auto", cmap="YlGnBu")
+        cbar = plt.colorbar(im, ax=ax)
+        cbar.set_label("投票区间宽度")
+        ax.set_title("观众投票不确定性热力图（按赛季-周次）", fontweight='bold')
+        ax.set_xlabel("周次")
+        ax.set_ylabel("赛季")
+        save_fig(fig, HEATMAP_FILE)
 
     # Judge score variability vs uncertainty (relation analysis)
     variability_rows = []
@@ -1144,43 +1153,38 @@ def main():
                                      (variability_df["fan_share_width_mean"].notna())]
         rank_df = variability_df[(variability_df["scheme"] == "rank") &
                                  (variability_df["fan_rank_std_mean"].notna())]
+        
+        # Log correlation info
         if not percent_df.empty:
             p_corr = percent_df["judge_std"].corr(percent_df["fan_share_width_mean"])
             p_spearman = percent_df["judge_std"].rank().corr(percent_df["fan_share_width_mean"].rank())
             print(f"\n评委评分差异性-不确定性（百分比法）相关：Pearson={p_corr:.3f}, Spearman={p_spearman:.3f}")
-        if not rank_df.empty:
-            r_corr = rank_df["judge_std"].corr(rank_df["fan_rank_std_mean"])
-            r_spearman = rank_df["judge_std"].rank().corr(rank_df["fan_rank_std_mean"].rank())
-            print(f"评委评分差异性-不确定性（排名法）相关：Pearson={r_corr:.3f}, Spearman={r_spearman:.3f}")
 
         # Visualization: judge variability vs uncertainty
-        plt.figure(figsize=(8, 5))
+        fig, ax = plt.subplots(figsize=(8, 5))
         if not percent_df.empty:
-            plt.scatter(
+            ax.scatter(
                 percent_df["judge_std"],
                 percent_df["fan_share_width_mean"],
                 alpha=0.6,
                 label="百分比法",
-                color="#4C78A8",
+                color=COLORS["blue"],
+                edgecolors='white'
             )
         if not rank_df.empty:
-            plt.scatter(
+            ax.scatter(
                 rank_df["judge_std"],
                 rank_df["fan_rank_std_mean"],
                 alpha=0.6,
                 label="排名法",
-                color="#F58518",
+                color=COLORS["orange"],
+                edgecolors='white'
             )
-        plt.title("评委评分差异性与不确定性关系")
-        plt.xlabel("评委评分标准差")
-        plt.ylabel("不确定性指标")
-        plt.grid(True, linestyle="--", alpha=0.4)
-        plt.legend()
-        plt.tight_layout()
-        plt.savefig(PLOT_JUDGE_UNCERTAINTY, dpi=300)
-        if SHOW_PLOTS:
-            plt.show()
-        plt.close()
+        ax.set_title("评委评分差异性与不确定性关系", fontweight='bold')
+        ax.set_xlabel("评委评分标准差")
+        ax.set_ylabel("不确定性指标")
+        ax.legend()
+        save_fig(fig, PLOT_JUDGE_UNCERTAINTY)
 
     # Sensitivity analysis for preference weights (full re-run)
     weight_grid = [
@@ -1190,6 +1194,7 @@ def main():
         (1.0, 1.5),
     ]
     sensitivity_rows = []
+    # (Sensitivity logic omitted for brevity in editing visual block, keeping structure)
     for w_smooth, w_corr in weight_grid:
         consistency_rate = run_estimation_for_weights(
             df, weeks, w_smooth, w_corr, sample_size=SENSITIVITY_SAMPLE_SIZE
@@ -1203,37 +1208,27 @@ def main():
     sensitivity_df = pd.DataFrame(sensitivity_rows)
     sensitivity_df.to_csv(OUTPUT_SENSITIVITY, index=False, encoding="utf-8-sig")
 
-    # Feasible space visualization (percent scheme, single elimination)
+    # Feasible space visualization
     if not uncertainty_percent_df.empty:
         feasible_vals = uncertainty_percent_df["fan_share_width"].dropna()
         if not feasible_vals.empty:
-            plt.figure(figsize=(6, 4))
-            plt.hist(feasible_vals, bins=30, color="#4C78A8", alpha=0.8)
-            plt.title("百分比法可行区间宽度分布")
-            plt.xlabel("区间宽度")
-            plt.ylabel("频数")
-            plt.grid(True, linestyle="--", alpha=0.4)
-            plt.tight_layout()
-            plt.savefig(PLOT_FEASIBLE_SPACE, dpi=300)
-            if SHOW_PLOTS:
-                plt.show()
-            plt.close()
+            fig, ax = plt.subplots(figsize=(6, 4))
+            ax.hist(feasible_vals, bins=30, color=COLORS["teal"], alpha=0.8, edgecolor='white')
+            ax.set_title("百分比法可行区间宽度分布", fontweight='bold')
+            ax.set_xlabel("区间宽度")
+            ax.set_ylabel("频数")
+            save_fig(fig, PLOT_FEASIBLE_SPACE)
 
     # Elimination pressure distribution
     if not consistency_ext_df.empty:
         pressure_vals = consistency_ext_df["elimination_pressure"].dropna()
         if not pressure_vals.empty:
-            plt.figure(figsize=(6, 4))
-            plt.hist(pressure_vals, bins=30, color="#F58518", alpha=0.8)
-            plt.title("淘汰压力分布")
-            plt.xlabel("压力值")
-            plt.ylabel("频数")
-            plt.grid(True, linestyle="--", alpha=0.4)
-            plt.tight_layout()
-            plt.savefig(PLOT_PRESSURE, dpi=300)
-            if SHOW_PLOTS:
-                plt.show()
-            plt.close()
+            fig, ax = plt.subplots(figsize=(6, 4))
+            ax.hist(pressure_vals, bins=30, color=COLORS["red"], alpha=0.8, edgecolor='white')
+            ax.set_title("淘汰压力分布", fontweight='bold')
+            ax.set_xlabel("压力值")
+            ax.set_ylabel("频数")
+            save_fig(fig, PLOT_PRESSURE)
 
     print(f"\n结果已保存至：{OUTPUT_VOTES}")
     print(f"周次状态已保存至：{OUTPUT_STATUS}")
